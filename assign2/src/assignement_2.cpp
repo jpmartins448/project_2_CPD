@@ -43,6 +43,28 @@ void OnMult(int m_ar, int m_br)
             phc[i*m_ar+j] = temp;
         }
     }
+    // #pragma omp parallel
+    // for (int i = 0; i < m_ar; i++) {
+    //     for (int j = 0; j < m_ar; j++) {
+    //         double temp = 0;
+    //         #pragma omp for  // declared inside = private to each thread
+    //         for (int k = 0; k < m_ar; k++) {
+    //             temp += pha[i*m_ar+k] * phb[k*m_br+j];
+    //         }
+    //         phc[i*m_ar+j] = temp;
+    //     }
+    // }
+
+    // #pragma omp parallel for
+    // for (int i = 0; i < m_ar; i++) {
+    //     for (int j = 0; j < m_ar; j++) {
+    //         double temp = 0;
+    //         for (int k = 0; k < m_ar; k++) {
+    //             temp += pha[i*m_ar+k] * phb[k*m_br+j];
+    //         }
+    //         phc[i*m_ar+j] = temp;
+    //     }
+    // }
     double end = omp_get_wtime();
     cout << "Parallel Time: " << end - start << " s" << endl;
 
@@ -93,6 +115,17 @@ void OnMultLine(int m_ar, int m_br)
             }
         }
     }
+
+    // #pragma omp parallel for
+    // for (int i = 0; i < m_ar; i++) {
+    //     for (int k = 0; k < m_ar; k++) {
+    //         #pragma omp for
+    //         double temp = pha[i*m_ar + k];  // private to each thread
+    //         for (int j = 0; j < m_br; j++) {
+    //             phc[i*m_ar + j] += temp * phb[k*m_ar + j];
+    //         }
+    //     }
+    // }
     
     double end = omp_get_wtime();
     cout << "Parallel Time: " << end - start << " s" << endl;
