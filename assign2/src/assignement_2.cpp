@@ -108,7 +108,7 @@ void OnMultLine(int m_ar, int m_br)
         }
     }
 
-    // #pragma omp parallel for
+    // #pragma omp parallel
     // for (int i = 0; i < m_ar; i++) {
     //     for (int k = 0; k < m_ar; k++) {
     //         #pragma omp for
