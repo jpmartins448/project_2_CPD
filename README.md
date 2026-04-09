@@ -8,9 +8,9 @@ Group members:
 2. João Martins   (up202207341@up.pt)
 3. Filipe Paiva   (up202304284@up.pt)
 
-See report of part 1 of this project in assign1/doc/Part_1_Report.pdf
+See report of part 1 of the first project in project1/assign1/doc/Part_1_Report.pdf
 
-See report of part 2 of this project in assign2/doc/Part_2_Report.pdf
+See report of part 2 of the first project in project1/assign2/doc/Part_2_Report.pdf
 
 
 Commands used:
