@@ -11,7 +11,7 @@ public class Server {
             Socket client = server.accept();
             System.out.println("Novo cliente conectado!");
 
-            // Virtual thread (Java 21)
+            //virtual thread
             Thread.startVirtualThread(() -> handleClient(client));
         }
     }
@@ -31,11 +31,9 @@ public class Server {
                 out.println("Servidor recebeu: " + msg);
             }
 
-            // 👇 aqui detecta desconexão normal
             System.out.println("Cliente desconectado.");
 
         } catch (Exception e) {
-            // 👇 desconexão com erro (ex: crash, cabo desligado)
             System.out.println("Erro na conexão com cliente.");
         }
     }

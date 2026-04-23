@@ -15,7 +15,7 @@ public class Client {
         BufferedReader keyboard = new BufferedReader(
                 new InputStreamReader(System.in));
 
-        // Thread para receber mensagens
+        //thread para receber mensagens
         Thread.startVirtualThread(() -> {
             try {
                 String response;
@@ -29,7 +29,7 @@ public class Client {
             }
         });
 
-        // Enviar mensagens
+        //enviar mensagens
         String userInput;
         while ((userInput = keyboard.readLine()) != null) {
             out.println(userInput);
