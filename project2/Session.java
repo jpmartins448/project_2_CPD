@@ -28,7 +28,7 @@ public class Session {
     public void deliver(Message msg, String room) {
         ClientConnection conn = connection.get();
         if (conn != null) {
-            conn.send(Protocol.DELIVER + "|" + room + "|" + msg.getAuthor() + "|" + msg.getTimestamp() + "|" + "\n"+ msg.getText());
+            conn.send(Protocol.DELIVER + "|" + room + "|" + msg.getAuthor() + "|" + msg.getTimestamp() + "|" + msg.getText());
         }
     }
 

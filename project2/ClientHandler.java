@@ -33,8 +33,11 @@ public class ClientHandler implements Runnable {
                 String cmd = parts[0];
                 String arg = parts.length > 1 ? parts[1] : "";
 
+
                 if (!authenticated) {
-                    if (cmd.equals(Protocol.REGISTER)) {
+                    if (cmd.equalsIgnoreCase("HELP")) {
+                        out.println(Protocol.OK + " Comandos disponíveis: REGISTER <user> <pass>, LOGIN <user> <pass>, TOKEN <token>, LIST_ROOMS, CREATE <room>, JOIN <room>, MSG <text>, LEAVE, LOGOUT, HELP");
+                    } else if (cmd.equals(Protocol.REGISTER)) {
                         String[] creds = arg.split(" ", 2);
                         if (creds.length < 2) { out.println(Protocol.ERR + " Invalid REGISTER"); continue; }
                         if (userStore.register(creds[0], creds[1])) {
@@ -70,55 +73,59 @@ public class ClientHandler implements Runnable {
                 }
 
                 // Authenticated commands
-                switch (cmd) {
-                    case Protocol.LIST_ROOMS -> {
-                        out.println(Protocol.ROOMS + " " + String.join(",", roomManager.listRooms()));
-                    }
-                    case Protocol.CREATE -> {
-                        Room room = roomManager.getOrCreateRoom(arg.trim());
-                        out.println(Protocol.OK + " Room created");
-                    }
-                    case Protocol.JOIN -> {
-                        Room room = roomManager.getRoom(arg.trim());
-                        if (room == null) {
-                            out.println(Protocol.ERR + " No such room");
-                        } else {
-                            if (currentRoom != null) currentRoom.leave(session);
-                            room.join(session);
-                            session.setCurrentRoom(room.getName());
-                            currentRoom = room;
-                            out.println(Protocol.OK + " Joined " + room.getName());
-                            // Send timeline
-                            for (Message m : room.getTimeline()) {
-                                session.deliver(m, room.getName());
+                if (cmd.equalsIgnoreCase("HELP")) {
+                    out.println(Protocol.OK + " Comandos disponíveis: REGISTER <user> <pass>, LOGIN <user> <pass>, TOKEN <token>, LIST_ROOMS, CREATE <room>, JOIN <room>, MSG <text>, LEAVE, LOGOUT, HELP");
+                } else {
+                    switch (cmd) {
+                        case Protocol.LIST_ROOMS -> {
+                            out.println(Protocol.ROOMS + " " + String.join(",", roomManager.listRooms()));
+                        }
+                        case Protocol.CREATE -> {
+                            Room room = roomManager.getOrCreateRoom(arg.trim());
+                            out.println(Protocol.OK + " Room created");
+                        }
+                        case Protocol.JOIN -> {
+                            Room room = roomManager.getRoom(arg.trim());
+                            if (room == null) {
+                                out.println(Protocol.ERR + " No such room");
+                            } else {
+                                if (currentRoom != null) currentRoom.leave(session);
+                                room.join(session);
+                                session.setCurrentRoom(room.getName());
+                                currentRoom = room;
+                                out.println(Protocol.OK + " Joined " + room.getName());
+                                // Send timeline
+                                for (Message m : room.getTimeline()) {
+                                    session.deliver(m, room.getName());
+                                }
                             }
                         }
-                    }
-                    case Protocol.MSG -> {
-                        if (currentRoom == null) {
-                            out.println(Protocol.ERR + " Not in a room");
-                        } else {
-                            Message msg = new Message(session.getUsername(), arg, Message.Type.USER);
-                            currentRoom.postMessage(msg);
+                        case Protocol.MSG -> {
+                            if (currentRoom == null) {
+                                out.println(Protocol.ERR + " Not in a room");
+                            } else {
+                                Message msg = new Message(session.getUsername(), arg, Message.Type.USER);
+                                currentRoom.postMessage(msg);
+                            }
                         }
-                    }
-                    case Protocol.LEAVE -> {
-                        if (currentRoom != null) {
-                            currentRoom.leave(session);
-                            session.setCurrentRoom(null);
-                            currentRoom = null;
-                            out.println(Protocol.OK + " Left room");
-                        } else {
-                            out.println(Protocol.ERR + " Not in a room");
+                        case Protocol.LEAVE -> {
+                            if (currentRoom != null) {
+                                currentRoom.leave(session);
+                                session.setCurrentRoom(null);
+                                currentRoom = null;
+                                out.println(Protocol.OK + " Left room");
+                            } else {
+                                out.println(Protocol.ERR + " Not in a room");
+                            }
                         }
+                        case Protocol.LOGOUT -> {
+                            sessionManager.expireSession(session.getToken());
+                            out.println(Protocol.OK + " Logged out");
+                            return;
+                        }
+                        case Protocol.PING -> out.println(Protocol.OK + " pong");
+                        default -> out.println(Protocol.ERR + " Unknown command");
                     }
-                    case Protocol.LOGOUT -> {
-                        sessionManager.expireSession(session.getToken());
-                        out.println(Protocol.OK + " Logged out");
-                        return;
-                    }
-                    case Protocol.PING -> out.println(Protocol.OK + " pong");
-                    default -> out.println(Protocol.ERR + " Unknown command");
                 }
             }
         } catch (Exception e) {
