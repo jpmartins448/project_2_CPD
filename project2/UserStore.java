@@ -1,4 +1,4 @@
-package project2;
+
 
 import java.io.*;
 import java.nio.file.*;
@@ -11,7 +11,7 @@ public class UserStore {
     private final Map<String, String> userToHash = new HashMap<>();
     private final Map<String, String> userToSalt = new HashMap<>();
     private final ReentrantLock lock = new ReentrantLock();
-    private final Path file = Paths.get("users.db");
+    private final Path file = Paths.get("project2", "users.db");
 
     public UserStore() {
         load();
