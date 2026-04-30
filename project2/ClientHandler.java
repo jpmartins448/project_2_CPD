@@ -61,7 +61,25 @@ public class ClientHandler implements Runnable {
                         if (s != null) {
                             session = s;
                             session.bindConnection(conn);
-                            out.println(Protocol.OK + " Token accepted");
+                            String prevRoom = session.getCurrentRoom();
+                            if (prevRoom != null) {
+                                Room room = roomManager.getRoom(prevRoom);
+                                if (room != null) {
+                                    room.join(session); // re-add session to room
+                                    // Send timeline
+                                    for (Message m : room.getTimeline()) {
+                                        session.deliver(m, room.getName());
+                                    }
+                                    out.println(Protocol.OK + " Session resumed in room " + room.getName());
+                                    currentRoom = room; // FIX: update currentRoom in handler
+                                } else {
+                                    out.println(Protocol.OK + " Session resumed, but previous room not found");
+                                    currentRoom = null;
+                                }
+                            } else {
+                                out.println(Protocol.OK + " Session resumed, not in any room");
+                                currentRoom = null;
+                            }
                             authenticated = true;
                         } else {
                             out.println(Protocol.ERR + " Invalid token");
