@@ -118,12 +118,37 @@ public class ClientHandler implements Runnable {
                                 }
                             }
                         }
+                        case Protocol.CREATE_AI -> {
+                            String[] aiParts = arg.split(" ", 2);
+
+                            if (aiParts.length < 2) {
+                                out.println(Protocol.ERR + " Usage: CREATE_AI <room> <prompt>");
+                                break;
+                            }
+
+                            String roomName = aiParts[0];
+                            String prompt = aiParts[1];
+
+                            roomManager.createAIRoom(roomName, prompt);
+
+                            if (room instanceof AIRoom) {
+                                out.println(Protocol.OK + " AI Room ready: " + room.getName());
+                            } else {
+                                out.println(Protocol.OK + " Room already existed (not AI overwritten)");
+                            }
+
+                            out.println(Protocol.OK + " AI Room created: " + roomName);
+                        }
                         case Protocol.MSG -> {
                             if (currentRoom == null) {
                                 out.println(Protocol.ERR + " Not in a room");
                             } else {
                                 Message msg = new Message(session.getUsername(), arg, Message.Type.USER);
-                                currentRoom.postMessage(msg);
+                                if (currentRoom instanceof AIRoom aiRoom) {
+                                    aiRoom.postMessage(msg);
+                                } else {
+                                    currentRoom.postMessage(msg);
+                                }
                             }
                         }
                         case Protocol.LEAVE -> {
