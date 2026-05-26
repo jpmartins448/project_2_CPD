@@ -92,7 +92,7 @@ public class ClientHandler implements Runnable {
 
                 // Authenticated commands
                 if (cmd.equalsIgnoreCase("HELP")) {
-                    out.println(Protocol.OK + " Comandos disponíveis: REGISTER <user> <pass>, LOGIN <user> <pass>, TOKEN <token>, LIST_ROOMS, CREATE <room>, JOIN <room>, MSG <text>, LEAVE, LOGOUT, HELP");
+                    out.println(Protocol.OK + " Comandos disponíveis: REGISTER <user> <pass>, LOGIN <user> <pass>, TOKEN <token>, LIST_ROOMS, CREATE <room>, CREATE_AI <room> <prompt>, JOIN <room>, MSG <text>, LEAVE, LOGOUT, HELP");
                 } else {
                     switch (cmd) {
                         case Protocol.LIST_ROOMS -> {
@@ -129,15 +129,13 @@ public class ClientHandler implements Runnable {
                             String roomName = aiParts[0];
                             String prompt = aiParts[1];
 
-                            roomManager.createAIRoom(roomName, prompt);
+                            Room newRoom = roomManager.createAIRoom(roomName, prompt);
 
-                            if (room instanceof AIRoom) {
-                                out.println(Protocol.OK + " AI Room ready: " + room.getName());
+                            if (newRoom instanceof AIRoom) {
+                                out.println(Protocol.OK + " AI Room ready: " + roomName);
                             } else {
                                 out.println(Protocol.OK + " Room already existed (not AI overwritten)");
                             }
-
-                            out.println(Protocol.OK + " AI Room created: " + roomName);
                         }
                         case Protocol.MSG -> {
                             if (currentRoom == null) {

@@ -11,13 +11,14 @@ public class UserStore {
     private final Map<String, String> userToHash = new HashMap<>();
     private final Map<String, String> userToSalt = new HashMap<>();
     private final ReentrantLock lock = new ReentrantLock();
-    private final Path file = Paths.get("project2", "users.db");
+    private final Path file = Paths.get("users.db");
 
     public UserStore() {
         load();
     }
 
     public boolean register(String username, String password) {
+        System.out.println("[DEBUG] register() called: " + username);
         lock.lock();
         try {
             if (userToHash.containsKey(username)) return false;
@@ -59,12 +60,16 @@ public class UserStore {
     }
 
     private void save() {
+        System.out.println("[DEBUG] save() writing file: " + file.toAbsolutePath());
         try (BufferedWriter bw = Files.newBufferedWriter(file)) {
             for (String user : userToHash.keySet()) {
                 bw.write(user + ":" + userToHash.get(user) + ":" + userToSalt.get(user));
                 bw.newLine();
             }
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            System.out.println("[ERROR] SAVE FAILED: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private String generateSalt() {

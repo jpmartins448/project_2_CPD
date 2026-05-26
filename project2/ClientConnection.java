@@ -37,6 +37,7 @@ public class ClientConnection {
 
     public void close() {
         running = false;
+        outboundQueue.put("");
         try { socket.close(); } catch (Exception ignored) {}
     }
 }

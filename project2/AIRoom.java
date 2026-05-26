@@ -1,4 +1,5 @@
 import java.util.List;
+import java.util.ArrayList;
 
 public class AIRoom extends Room {
 
@@ -19,7 +20,7 @@ public class AIRoom extends Room {
 
         super.postMessage(msg);
 
-        List<Message> context = new ArrayList<>(getTimeline());
+        final List<Message> context = new ArrayList<>(getTimeline());
 
         Thread.startVirtualThread(() -> {
             String response = llm.ask(prompt, context);
