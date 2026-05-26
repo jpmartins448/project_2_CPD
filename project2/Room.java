@@ -1,5 +1,3 @@
-
-
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,40 +11,70 @@ public class Room {
         this.name = name;
     }
 
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
     public void join(Session session) {
+        List<Session> snapshot;
+        Message sysMsg;
+
         lock.lock();
         try {
             members.add(session);
-            Message sysMsg = new Message("SYSTEM", "[" + session.getUsername() + " enters the room]", Message.Type.SYSTEM);
+
+            sysMsg = new Message(
+                "SYSTEM",
+                "[" + session.getUsername() + " enters the room]",
+                Message.Type.SYSTEM
+            );
+
             timeline.add(sysMsg);
-            broadcastSystem(sysMsg.getText());
+
+            snapshot = new ArrayList<>(members);
         } finally {
             lock.unlock();
         }
+
+        broadcastSystem(sysMsg.getText(), snapshot);
     }
 
     public void leave(Session session) {
+        List<Session> snapshot;
+        Message sysMsg;
+
         lock.lock();
         try {
             members.remove(session);
-            Message sysMsg = new Message("SYSTEM", "[" + session.getUsername() + " leaves the room]", Message.Type.SYSTEM);
+
+            sysMsg = new Message(
+                "SYSTEM",
+                "[" + session.getUsername() + " leaves the room]",
+                Message.Type.SYSTEM
+            );
+
             timeline.add(sysMsg);
-            broadcastSystem(sysMsg.getText());
+
+            snapshot = new ArrayList<>(members);
         } finally {
             lock.unlock();
         }
+
+        broadcastSystem(sysMsg.getText(), snapshot);
     }
 
     public void postMessage(Message msg) {
+        List<Session> snapshot;
+
         lock.lock();
         try {
             timeline.add(msg);
-            broadcast(msg);
+            snapshot = new ArrayList<>(members);
         } finally {
             lock.unlock();
         }
+
+        broadcast(msg, snapshot);
     }
 
     public List<Message> getTimeline() {
@@ -58,14 +86,14 @@ public class Room {
         }
     }
 
-    protected void broadcast(Message msg) {
-        for (Session s : members) {
+    protected void broadcast(Message msg, List<Session> snapshot) {
+        for (Session s : snapshot) {
             s.deliver(msg, name);
         }
     }
 
-    protected void broadcastSystem(String text) {
-        for (Session s : members) {
+    protected void broadcastSystem(String text, List<Session> snapshot) {
+        for (Session s : snapshot) {
             s.deliverSystem(text, name);
         }
     }

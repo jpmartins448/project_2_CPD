@@ -1,5 +1,3 @@
-
-
 import java.io.*;
 import java.net.Socket;
 
@@ -66,12 +64,13 @@ public class ClientHandler implements Runnable {
                                 Room room = roomManager.getRoom(prevRoom);
                                 if (room != null) {
                                     room.join(session); // re-add session to room
-                                    // Send timeline
                                     for (Message m : room.getTimeline()) {
-                                        session.deliver(m, room.getName());
+                                        if (m.getType() == Message.Type.USER) {
+                                            session.deliver(m, room.getName());
+                                        }
                                     }
                                     out.println(Protocol.OK + " Session resumed in room " + room.getName());
-                                    currentRoom = room; // FIX: update currentRoom in handler
+                                    currentRoom = room; 
                                 } else {
                                     out.println(Protocol.OK + " Session resumed, but previous room not found");
                                     currentRoom = null;
