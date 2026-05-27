@@ -1,5 +1,5 @@
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 public class AIRoom extends Room {
 
@@ -20,7 +20,10 @@ public class AIRoom extends Room {
 
         super.postMessage(msg);
 
-        final List<Message> context = new ArrayList<>(getTimeline());
+        final List<Message> context;
+
+        // snapshot seguro
+        context = getTimeline();
 
         Thread.startVirtualThread(() -> {
             String response = llm.ask(prompt, context);

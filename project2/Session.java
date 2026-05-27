@@ -1,4 +1,5 @@
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Session {
 
@@ -8,7 +9,8 @@ public class Session {
 
     private final AtomicReference<ClientConnection> connection = new AtomicReference<>();
 
-    private volatile String currentRoom;
+    private final ReentrantLock lock = new ReentrantLock();
+    private String currentRoom;
 
     public Session(String username, String token, long expiry) {
         this.username = username;
@@ -18,10 +20,7 @@ public class Session {
 
     public void bindConnection(ClientConnection conn) {
         ClientConnection old = connection.getAndSet(conn);
-
-        if (old != null) {
-            old.close(); 
-        }
+        if (old != null) old.close();
     }
 
     public void deliver(Message msg, String room) {
@@ -59,10 +58,20 @@ public class Session {
     }
 
     public String getCurrentRoom() {
-        return currentRoom;
+        lock.lock();
+        try {
+            return currentRoom;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void setCurrentRoom(String room) {
-        this.currentRoom = room;
+        lock.lock();
+        try {
+            this.currentRoom = room;
+        } finally {
+            lock.unlock();
+        }
     }
 }

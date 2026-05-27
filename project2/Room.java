@@ -2,6 +2,7 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Room {
+
     protected final String name;
     protected final List<Message> timeline = new ArrayList<>();
     protected final Set<Session> members = new HashSet<>();
