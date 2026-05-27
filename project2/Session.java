@@ -20,7 +20,9 @@ public class Session {
 
     public void bindConnection(ClientConnection conn) {
         ClientConnection old = connection.getAndSet(conn);
-        if (old != null) old.close();
+        if (old != null) {
+            old.close();
+        }
     }
 
     public void deliver(Message msg, String room) {

@@ -1,7 +1,7 @@
-
-
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.Iterator;
+import java.util.Map;
 
 public class SessionManager {
     private final Map<String, Session> sessions = new HashMap<>();
@@ -45,6 +45,24 @@ public class SessionManager {
     }
 
     private String generateToken() {
-        return Long.toHexString(random.nextLong()) + Long.toHexString(random.nextLong());
+        return java.util.UUID.randomUUID().toString();
+    }
+
+    public void cleanupExpiredSessions() {
+        lock.lock();
+        try {
+            long now = System.currentTimeMillis();
+
+            Iterator<Map.Entry<String, Session>> it = sessions.entrySet().iterator();
+
+            while (it.hasNext()) {
+                Map.Entry<String, Session> e = it.next();
+                if (e.getValue().getExpiry() <= now) {
+                    it.remove();
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
     }
 }

@@ -32,7 +32,7 @@ public class Room {
 
             timeline.add(sysMsg);
 
-            snapshot = new ArrayList<>(members);
+            snapshot = List.copyOf(members);
         } finally {
             lock.unlock();
         }
@@ -96,6 +96,15 @@ public class Room {
     protected void broadcastSystem(String text, List<Session> snapshot) {
         for (Session s : snapshot) {
             s.deliverSystem(text, name);
+        }
+    }
+
+    public void forceRemove(Session session) {
+        lock.lock();
+        try {
+            members.remove(session);
+        } finally {
+            lock.unlock();
         }
     }
 }
