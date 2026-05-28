@@ -198,7 +198,3 @@ users.db
 ```
 
 Passwords are salted and hashed with SHA-256 before being stored.
-
-## Notes
-
-Generated `.class` files, `.session_token`, and `users.db` are runtime/build artifacts and should normally not be committed unless explicitly required by the submission rules.
