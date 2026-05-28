@@ -18,7 +18,6 @@ public class UserStore {
     }
 
     public boolean register(String username, String password) {
-        System.out.println("[DEBUG] register() called: " + username);
         lock.lock();
         try {
             if (userToHash.containsKey(username)) return false;
@@ -60,16 +59,12 @@ public class UserStore {
     }
 
     private void save() {
-        System.out.println("[DEBUG] save() writing file: " + file.toAbsolutePath());
         try (BufferedWriter bw = Files.newBufferedWriter(file)) {
             for (String user : userToHash.keySet()) {
                 bw.write(user + ":" + userToHash.get(user) + ":" + userToSalt.get(user));
                 bw.newLine();
             }
-        } catch (IOException e) {
-            System.out.println("[ERROR] SAVE FAILED: " + e.getMessage());
-            e.printStackTrace();
-        }
+        } catch (IOException ignored) {}
     }
 
     private String generateSalt() {

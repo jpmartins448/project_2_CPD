@@ -1,9 +1,9 @@
-
-
 import java.time.Instant;
 
 public class Message {
     public enum Type { USER, SYSTEM, BOT }
+
+    private long id;
     private final String author;
     private final String text;
     private final Instant timestamp;
@@ -16,8 +16,13 @@ public class Message {
         this.timestamp = Instant.now();
     }
 
+    public long getId() { return id; }
     public String getAuthor() { return author; }
     public String getText() { return text; }
     public Instant getTimestamp() { return timestamp; }
     public Type getType() { return type; }
+
+    void setId(long id) {
+        this.id = id;
+    }
 }

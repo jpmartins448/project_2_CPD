@@ -3,10 +3,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Room {
 
+    private static final int MAX_TIMELINE_MESSAGES = 500;
+
     protected final String name;
     protected final List<Message> timeline = new ArrayList<>();
     protected final Set<Session> members = new HashSet<>();
     protected final ReentrantLock lock = new ReentrantLock();
+    private long nextMessageId = 1;
 
     public Room(String name) {
         this.name = name;
@@ -18,50 +21,51 @@ public class Room {
 
     public void join(Session session) {
         List<Session> snapshot;
-        Message sysMsg;
+        Message sysMsg = new Message(
+            "SYSTEM",
+            "[" + session.getUsername() + " enters the room]",
+            Message.Type.SYSTEM
+        );
 
         lock.lock();
         try {
             members.add(session);
-
-            sysMsg = new Message(
-                "SYSTEM",
-                "[" + session.getUsername() + " enters the room]",
-                Message.Type.SYSTEM
-            );
-
-            timeline.add(sysMsg);
-
+            addToTimeline(sysMsg);
             snapshot = List.copyOf(members);
         } finally {
             lock.unlock();
         }
 
-        broadcastSystem(sysMsg.getText(), snapshot);
+        broadcastSystem(sysMsg, snapshot);
+    }
+
+    public void resume(Session session) {
+        lock.lock();
+        try {
+            members.add(session);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void leave(Session session) {
         List<Session> snapshot;
-        Message sysMsg;
+        Message sysMsg = new Message(
+            "SYSTEM",
+            "[" + session.getUsername() + " leaves the room]",
+            Message.Type.SYSTEM
+        );
 
         lock.lock();
         try {
             members.remove(session);
-
-            sysMsg = new Message(
-                "SYSTEM",
-                "[" + session.getUsername() + " leaves the room]",
-                Message.Type.SYSTEM
-            );
-
-            timeline.add(sysMsg);
-
+            addToTimeline(sysMsg);
             snapshot = new ArrayList<>(members);
         } finally {
             lock.unlock();
         }
 
-        broadcastSystem(sysMsg.getText(), snapshot);
+        broadcastSystem(sysMsg, snapshot);
     }
 
     public void postMessage(Message msg) {
@@ -69,7 +73,7 @@ public class Room {
 
         lock.lock();
         try {
-            timeline.add(msg);
+            addToTimeline(msg);
             snapshot = new ArrayList<>(members);
         } finally {
             lock.unlock();
@@ -87,15 +91,30 @@ public class Room {
         }
     }
 
+    public List<Message> getMessagesAfter(long lastSeenMessageId) {
+        lock.lock();
+        try {
+            List<Message> messages = new ArrayList<>();
+            for (Message message : timeline) {
+                if (message.getId() > lastSeenMessageId) {
+                    messages.add(message);
+                }
+            }
+            return messages;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     protected void broadcast(Message msg, List<Session> snapshot) {
         for (Session s : snapshot) {
             s.deliver(msg, name);
         }
     }
 
-    protected void broadcastSystem(String text, List<Session> snapshot) {
+    protected void broadcastSystem(Message msg, List<Session> snapshot) {
         for (Session s : snapshot) {
-            s.deliverSystem(text, name);
+            s.deliverSystem(msg, name);
         }
     }
 
@@ -105,6 +124,14 @@ public class Room {
             members.remove(session);
         } finally {
             lock.unlock();
+        }
+    }
+
+    private void addToTimeline(Message msg) {
+        msg.setId(nextMessageId++);
+        timeline.add(msg);
+        while (timeline.size() > MAX_TIMELINE_MESSAGES) {
+            timeline.remove(0);
         }
     }
 }

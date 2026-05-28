@@ -15,7 +15,7 @@ public class RoomManager {
         lock.lock();
         try {
             if (rooms.containsKey(name)) {
-                return rooms.get(name); // evita overwrite bug
+                return rooms.get(name);
             }
 
             AIRoom room = new AIRoom(name, prompt, llm);
@@ -49,6 +49,21 @@ public class RoomManager {
         lock.lock();
         try {
             return new ArrayList<>(rooms.keySet());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void removeSessions(Collection<Session> sessions) {
+        if (sessions.isEmpty()) return;
+
+        lock.lock();
+        try {
+            for (Room room : rooms.values()) {
+                for (Session session : sessions) {
+                    room.forceRemove(session);
+                }
+            }
         } finally {
             lock.unlock();
         }

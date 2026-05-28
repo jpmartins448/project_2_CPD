@@ -1,21 +1,31 @@
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.Iterator;
-import java.util.Map;
 
 public class SessionManager {
-    private final Map<String, Session> sessions = new HashMap<>();
+    private final Map<String, Session> sessionsByToken = new HashMap<>();
+    private final Map<String, Session> sessionsByUser = new HashMap<>();
     private final ReentrantLock lock = new ReentrantLock();
-    private final Random random = new Random();
     private static final long TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24h
 
     public Session createSession(String username) {
         lock.lock();
         try {
+            long now = System.currentTimeMillis();
+            Session existing = sessionsByUser.get(username);
+            if (existing != null && existing.getExpiry() > now) {
+                return existing;
+            }
+
+            if (existing != null) {
+                sessionsByToken.remove(existing.getToken());
+                sessionsByUser.remove(username);
+            }
+
             String token = generateToken();
-            long expiry = System.currentTimeMillis() + TOKEN_EXPIRY_MS;
+            long expiry = now + TOKEN_EXPIRY_MS;
             Session session = new Session(username, token, expiry);
-            sessions.put(token, session);
+            sessionsByToken.put(token, session);
+            sessionsByUser.put(username, session);
             return session;
         } finally {
             lock.unlock();
@@ -25,9 +35,9 @@ public class SessionManager {
     public Session getSessionByToken(String token) {
         lock.lock();
         try {
-            Session s = sessions.get(token);
-            if (s != null && s.getExpiry() > System.currentTimeMillis()) {
-                return s;
+            Session session = sessionsByToken.get(token);
+            if (session != null && session.getExpiry() > System.currentTimeMillis()) {
+                return session;
             }
             return null;
         } finally {
@@ -35,10 +45,17 @@ public class SessionManager {
         }
     }
 
-    public void expireSession(String token) {
+    public Session expireSession(String token) {
         lock.lock();
         try {
-            sessions.remove(token);
+            Session removed = sessionsByToken.remove(token);
+            if (removed != null) {
+                Session current = sessionsByUser.get(removed.getUsername());
+                if (current == removed) {
+                    sessionsByUser.remove(removed.getUsername());
+                }
+            }
+            return removed;
         } finally {
             lock.unlock();
         }
@@ -48,19 +65,27 @@ public class SessionManager {
         return java.util.UUID.randomUUID().toString();
     }
 
-    public void cleanupExpiredSessions() {
+    public List<Session> cleanupExpiredSessions() {
         lock.lock();
         try {
             long now = System.currentTimeMillis();
-
-            Iterator<Map.Entry<String, Session>> it = sessions.entrySet().iterator();
+            List<Session> expired = new ArrayList<>();
+            Iterator<Map.Entry<String, Session>> it = sessionsByToken.entrySet().iterator();
 
             while (it.hasNext()) {
-                Map.Entry<String, Session> e = it.next();
-                if (e.getValue().getExpiry() <= now) {
+                Map.Entry<String, Session> entry = it.next();
+                Session session = entry.getValue();
+                if (session.getExpiry() <= now) {
                     it.remove();
+                    Session current = sessionsByUser.get(session.getUsername());
+                    if (current == session) {
+                        sessionsByUser.remove(session.getUsername());
+                    }
+                    expired.add(session);
                 }
             }
+
+            return expired;
         } finally {
             lock.unlock();
         }

@@ -1,3 +1,5 @@
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -10,6 +12,7 @@ public class Session {
     private final AtomicReference<ClientConnection> connection = new AtomicReference<>();
 
     private final ReentrantLock lock = new ReentrantLock();
+    private final Map<String, Long> lastSeenByRoom = new HashMap<>();
     private String currentRoom;
 
     public Session(String username, String token, long expiry) {
@@ -25,6 +28,10 @@ public class Session {
         }
     }
 
+    public void unbindConnection(ClientConnection conn) {
+        connection.compareAndSet(conn, null);
+    }
+
     public void deliver(Message msg, String room) {
         ClientConnection conn = connection.get();
         if (conn != null) {
@@ -33,18 +40,53 @@ public class Session {
                 room + "|" +
                 msg.getAuthor() + "|" +
                 msg.getTimestamp() + "|" +
-                msg.getText()
+                sanitize(msg.getText())
             );
+            markDelivered(room, msg.getId());
         }
     }
 
-    public void deliverSystem(String text, String room) {
+    public void deliverSystem(Message msg, String room) {
         ClientConnection conn = connection.get();
         if (conn != null) {
-            conn.send(
-                Protocol.SYSTEM + "|" + room + "|" + text
-            );
+            conn.send(Protocol.SYSTEM + "|" + room + "|" + sanitize(msg.getText()));
+            markDelivered(room, msg.getId());
         }
+    }
+
+    public void deliverHistory(Message msg, String room) {
+        if (msg.getType() == Message.Type.SYSTEM) {
+            deliverSystem(msg, room);
+        } else {
+            deliver(msg, room);
+        }
+    }
+
+    public long getLastSeenMessageId(String room) {
+        lock.lock();
+        try {
+            return lastSeenByRoom.getOrDefault(room, 0L);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void markDelivered(String room, long messageId) {
+        if (messageId <= 0) return;
+
+        lock.lock();
+        try {
+            long current = lastSeenByRoom.getOrDefault(room, 0L);
+            if (messageId > current) {
+                lastSeenByRoom.put(room, messageId);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private String sanitize(String text) {
+        return text.replace("\r", " ").replace("\n", " ");
     }
 
     public String getUsername() {

@@ -10,6 +10,7 @@ public class Protocol {
     public static final String CREATE = "CREATE";
     public static final String CREATE_AI = "CREATE_AI";
     public static final String MSG = "MSG";
+    public static final String PROMPT = "PROMPT";
     public static final String LEAVE = "LEAVE";
     public static final String LOGOUT = "LOGOUT";
     public static final String PING = "PING";

@@ -12,25 +12,30 @@ public class LLMClient {
         this.http = HttpClient.newHttpClient();
     }
 
-    public String ask(String systemPrompt, List<Message> context) {
+    public String ask(String systemPrompt, List<Message> context, String username, String instruction) {
         try {
             StringBuilder prompt = new StringBuilder();
 
             prompt.append("SYSTEM: ").append(systemPrompt).append("\n");
-            prompt.append("You are a helpful chat assistant. Reply briefly.\n\n");
+            prompt.append("You are the Bot user inside this chat room. Use the conversation context below to answer the user's prompt. Reply briefly and directly.\n\n");
+            prompt.append("Conversation so far:\n");
 
-            int start = Math.max(0, context.size() - 10);
-
-            for (int i = start; i < context.size(); i++) {
-                Message m = context.get(i);
+            for (Message m : context) {
+                if (m.getType() == Message.Type.SYSTEM) continue;
                 prompt.append(m.getAuthor())
                         .append(": ")
-                        .append(m.getText())
+                        .append(m.getText().replace("\n", " "))
                         .append("\n");
             }
 
+            prompt.append("\n")
+                    .append(username)
+                    .append(" asks Bot: ")
+                    .append(instruction)
+                    .append("\nBot:");
+
             String json = "{"
-                    + "\"model\":\"" + model + "\","
+                    + "\"model\":\"" + escape(model) + "\","
                     + "\"prompt\":\"" + escape(prompt.toString()) + "\","
                     + "\"stream\":false"
                     + "}";
@@ -54,21 +59,42 @@ public class LLMClient {
     private String escape(String s) {
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
-                .replace("\n", "\\n");
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     private String extractResponse(String json) {
-        String key = "\"response\":\"";
-        int start = json.indexOf(key);
+        String key = "\"response\":";
+        int keyStart = json.indexOf(key);
+        if (keyStart == -1) return json;
+
+        int start = json.indexOf('"', keyStart + key.length());
         if (start == -1) return json;
 
-        start += key.length();
-        int end = json.indexOf("\"", start);
+        StringBuilder value = new StringBuilder();
+        boolean escaping = false;
+        for (int i = start + 1; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaping) {
+                switch (c) {
+                    case 'n' -> value.append('\n');
+                    case 'r' -> value.append('\r');
+                    case 't' -> value.append('\t');
+                    case '"' -> value.append('"');
+                    case '\\' -> value.append('\\');
+                    default -> value.append(c);
+                }
+                escaping = false;
+            } else if (c == '\\') {
+                escaping = true;
+            } else if (c == '"') {
+                return value.toString();
+            } else {
+                value.append(c);
+            }
+        }
 
-        if (end == -1) return json.substring(start);
-
-        return json.substring(start, end)
-                .replace("\\n", "\n")
-                .replace("\\\"", "\"");
+        return value.toString();
     }
 }

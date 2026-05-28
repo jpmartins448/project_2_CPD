@@ -2,7 +2,7 @@ import java.net.*;
 
 public class Server {
     public static void main(String[] args) throws Exception {
-        int port = 12345;
+        int port = args.length > 0 ? Integer.parseInt(args[0]) : 12345;
 
         try (ServerSocket server = new ServerSocket(port)) {
 
@@ -16,7 +16,7 @@ public class Server {
                 while (true) {
                     try {
                         Thread.sleep(60_000);
-                        sessionManager.cleanupExpiredSessions();
+                        roomManager.removeSessions(sessionManager.cleanupExpiredSessions());
                     } catch (InterruptedException ignored) {}
                 }
             });

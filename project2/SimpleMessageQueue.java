@@ -9,13 +9,13 @@ public class SimpleMessageQueue<T> {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition notEmpty = lock.newCondition();
 
-    private static final int MAX_SIZE = 100; // 💡 anti slow-client
+    private static final int MAX_SIZE = 100; // anti slow-client
 
     public void put(T item) {
         lock.lock();
         try {
             if (queue.size() >= MAX_SIZE) {
-                queue.poll(); // remove oldest message (backpressure simples)
+                queue.poll(); // remove oldest message
             }
             queue.add(item);
             notEmpty.signal();
