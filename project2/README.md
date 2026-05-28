@@ -152,11 +152,16 @@ The provided client formats these responses for display.
 
 ## Concurrency Design
 
-The server uses Java virtual threads to reduce thread overhead:
+The server uses Java virtual threads to reduce thread overhead while keeping the code in a simple blocking I/O style. TCP reads, TCP writes, and Ollama HTTP calls may block, but blocking a virtual thread is cheap compared with blocking a platform thread.
 
-- One virtual thread accepts each connected client.
-- Each `ClientConnection` has a virtual sender thread.
-- AI prompt processing runs in virtual threads.
+Virtual threads are used in these places:
+
+- The server starts one virtual thread per accepted TCP client connection. This thread runs `ClientHandler` and reads commands from that client.
+- Each `ClientConnection` starts one virtual sender thread. Room broadcasts only enqueue outbound messages, and this sender thread writes them to the socket. This avoids one slow client blocking the room broadcast path.
+- The server starts one virtual cleanup thread that periodically removes expired sessions.
+- Each `AIRoom` starts one virtual prompt worker. Prompts in the same AI room are processed sequentially, so bot replies are written to the room in prompt order.
+
+In practice, a connected user normally has two virtual threads associated with the server side of the connection: one `ClientHandler` reader thread and one `ClientConnection` sender thread. If the user disconnects and reconnects, the old connection is unbound from the session and the new connection gets new virtual threads while keeping the same authenticated session.
 
 Shared state is protected with `ReentrantLock` and `Condition`:
 
